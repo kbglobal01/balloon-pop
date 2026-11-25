@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>풍선 대장 시연</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+/* Layout: projector-friendly presenter page; two QR cards side by side (Wi-Fi first, then game), stacking on narrow screens. */
+:root {
+  --sky: #bfe9ff;
+  --sky-deep: #63c4ff;
+  --ink: #1d3557;
+  --ink-soft: #4a6584;
+  --card: #ffffff;
+  --edge: #bfe6ff;
+  --pink: #ff6fa5;
+  --sun: #ffd23f;
+  --warn: #ff3b4f;
+  --display: "Jua", "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --body: "Gowun Dodum", "Jua", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0; min-height: 100vh;
+  background: linear-gradient(180deg, var(--sky-deep), var(--sky) 55%, #e6f7ff);
+  color: var(--ink); font-family: var(--body);
+}
+.wrap { max-width: 1100px; margin: 0 auto; padding: 28px max(16px, 3vw) 40px; display: flex; flex-direction: column; gap: 22px; }
+header { text-align: center; }
+h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(40px, 6vw, 68px); color: #fff; text-shadow: 0 4px 0 rgba(29,53,87,.18); }
+header p { margin: 6px 0 0; font-size: clamp(18px, 2.2vw, 24px); color: var(--ink); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 22px; }
+.card {
+  background: var(--card); border: 5px solid var(--edge); border-radius: 36px;
+  box-shadow: 0 10px 0 rgba(29,53,87,.14);
+  padding: 22px 24px 26px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; min-width: 0;
+}
+.card.game { border-color: var(--sun); }
+.head { display: flex; align-items: center; gap: 10px; }
+.step { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--sky-deep); color: #fff; font-family: var(--display); font-size: 26px; }
+.game .step { background: var(--pink); }
+h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(28px, 3vw, 36px); }
+.qr { width: min(100%, 360px); aspect-ratio: 1; display: grid; place-items: center; border-radius: 20px; background: #fff; }
+.qr svg { width: 100%; height: 100%; display: block; }
+.qr.empty { border: 4px dashed var(--edge); padding: 24px; font-size: 19px; color: var(--ink-soft); line-height: 1.5; }
+.url { margin: 0; font-family: var(--display); font-size: clamp(22px, 2.6vw, 32px); word-break: break-all; }
+.sub { margin: 0; font-size: 18px; color: var(--ink-soft); line-height: 1.5; }
+.warn { margin: 0; font-size: 18px; color: var(--warn); background: #fff0f2; border-radius: 16px; padding: 10px 14px; line-height: 1.45; }
+form { width: 100%; display: grid; gap: 10px; text-align: left; }
+label { font-size: 16px; color: var(--ink-soft); display: grid; gap: 4px; }
+input[type="text"], input[type="password"], select {
+  font: inherit; font-size: 20px; color: var(--ink); padding: 10px 14px; border-radius: 14px; border: 3px solid var(--edge); background: #f6fbff; width: 100%;
+}
+.check { display: flex; align-items: center; gap: 8px; font-size: 17px; color: var(--ink); }
+.check input { width: 22px; height: 22px; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.btn {
+  font-family: var(--display); font-size: 24px; text-decoration: none; color: #fff; background: var(--pink);
+  padding: 12px 26px; border-radius: 24px; box-shadow: 0 6px 0 #d94a83; border: 0; cursor: pointer;
+}
+.btn.light { background: #fff; color: var(--ink); box-shadow: 0 6px 0 rgba(29,53,87,.18); }
+.tips { background: rgba(255,255,255,.8); border-radius: 24px; padding: 16px 22px; }
+.tips h3 { margin: 0 0 6px; font-family: var(--display); font-weight: 400; font-size: 22px; }
+.tips ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; font-size: 17px; line-height: 1.5; }
+:focus-visible { outline: 4px solid var(--sky-deep); outline-offset: 3px; }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <h1>풍선 터뜨리기</h1>
+    <p>휴대폰 카메라로 QR코드를 찍으면 로그인 없이 바로 시작해요. 인터넷은 필요 없어요.</p>
+  </header>
+
+  <div class="grid">
+    <section class="card">
+      <div class="head"><span class="step">1</span><h2>와이파이 연결</h2></div>
+      <div id="wifiQr" class="qr empty">아래에 와이파이 이름과 비밀번호를 넣으면 연결용 QR코드가 생겨요.<br>이미 같은 와이파이에 있다면 건너뛰어도 돼요.</div>
+      <p class="url" id="wifiLabel" hidden></p>
+      <form id="wifiForm" autocomplete="off">
+        <label for="ssid">와이파이 이름
+          <input id="ssid" type="text" placeholder="예: Balloon-WiFi">
+        </label>
+        <label for="pw">비밀번호
+          <input id="pw" type="text" placeholder="비밀번호">
+        </label>
+        <span class="check"><input id="nopass" type="checkbox"><label for="nopass" style="display:inline">비밀번호 없는 와이파이</label></span>
+      </form>
+    </section>
+
+    <section class="card game">
+      <div class="head"><span class="step">2</span><h2>게임 열기</h2></div>
+      <div id="gameQr" class="qr"></div>
+      <p class="url" id="gameUrl">주소를 찾는 중…</p>
+      <label for="ipPick" id="ipPickWrap" hidden style="width:100%">주소가 여러 개예요. 휴대폰과 같은 와이파이 주소를 고르세요.
+        <select id="ipPick"></select>
+      </label>
+      <p class="warn" id="warn" hidden></p>
+    </section>
+  </div>
+
+  <div class="actions">
+    <a class="btn" href="/" target="_blank" rel="noopener">이 컴퓨터에서 게임 열기</a>
+  </div>
+
+  <section class="tips">
+    <h3>시연 전에 확인하세요</h3>
+    <ul>
+      <li>휴대폰과 이 컴퓨터는 <b>같은 와이파이</b>에 연결되어 있어야 해요.</li>
+      <li>게임 서버 창(검은 창)을 닫으면 게임이 멈춰요. 시연이 끝날 때까지 켜 두세요.</li>
+      <li>처음 실행할 때 방화벽 허용 창이 뜨면 <b>허용</b>을 눌러 주세요.</li>
+      <li>휴대폰에서 안 열리면, 손님용 와이파이가 기기끼리 연결을 막고 있을 수 있어요. 휴대폰 핫스팟이나 휴대용 공유기를 쓰면 돼요.</li>
+    </ul>
+  </section>
+</main>
+
+<script src="qrcode.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  qrcode.stringToBytes = qrcode.stringToBytesFuncs["UTF-8"];
+  const qrSvg = (text) => { const q = qrcode(0, "M"); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 8, margin: 2, scalable: true }); };
+  const store = {
+    get(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  };
+
+  // ---- game address ----
+  let info = null, shownUrl = "";
+  function renderGame() {
+    const ips = (info && info.ips) || [];
+    const pick = $("ipPick");
+    const wanted = store.get("host.ip");
+    const ip = ips.some((x) => x.ip === wanted) ? wanted : (ips[0] && ips[0].ip);
+    $("ipPickWrap").hidden = ips.length < 2;
+    const opts = ips.map((x) => `<option value="${x.ip}"${x.ip === ip ? " selected" : ""}>${x.ip}  (${x.name})</option>`).join("");
+    if (pick.innerHTML !== opts) pick.innerHTML = opts;
+    const warn = $("warn");
+    let url;
+    if (ip) { url = `http://${ip}:${info.port}/`; warn.hidden = true; }
+    else {
+      url = `http://localhost:${info.port}/`;
+      warn.hidden = false;
+      warn.textContent = "이 컴퓨터가 와이파이에 연결되어 있지 않아요. 와이파이에 연결하면 QR코드가 저절로 바뀌어요.";
+    }
+    if (url !== shownUrl) { shownUrl = url; $("gameQr").innerHTML = qrSvg(url); $("gameUrl").textContent = url; }
+  }
+  async function load() {
+    try {
+      const r = await fetch("/api/info", { cache: "no-store" });
+      info = await r.json();
+      renderGame();
+    } catch (e) {
+      $("warn").hidden = false;
+      $("warn").textContent = "게임 서버가 꺼져 있어요. 게임 서버 프로그램을 다시 실행해 주세요.";
+    }
+  }
+  $("ipPick").addEventListener("change", (e) => { store.set("host.ip", e.target.value); renderGame(); });
+  load(); setInterval(load, 4000);
+
+  // ---- Wi-Fi QR ----
+  const esc = (s) => s.replace(/([\\;,:"])/g, "\\$1");
+  function renderWifi() {
+    const ssid = $("ssid").value.trim(), pw = $("pw").value, open = $("nopass").checked;
+    $("pw").disabled = open;
+    store.set("host.ssid", ssid); store.set("host.pw", pw); store.set("host.nopass", open ? "1" : "");
+    const box = $("wifiQr"), label = $("wifiLabel");
+    if (!ssid || (!open && !pw)) {
+      box.className = "qr empty";
+      box.innerHTML = "아래에 와이파이 이름과 비밀번호를 넣으면 연결용 QR코드가 생겨요.<br>이미 같은 와이파이에 있다면 건너뛰어도 돼요.";
+      label.hidden = true; return;
+    }
+    const text = open ? `WIFI:T:nopass;S:${esc(ssid)};;` : `WIFI:T:WPA;S:${esc(ssid)};P:${esc(pw)};;`;
+    box.className = "qr"; box.innerHTML = qrSvg(text);
+    label.hidden = false; label.textContent = ssid;
+  }
+  $("ssid").value = store.get("host.ssid");
+  $("pw").value = store.get("host.pw");
+  $("nopass").checked = store.get("host.nopass") === "1";
+  ["ssid", "pw", "nopass"].forEach((id) => $(id).addEventListener("input", renderWifi));
+  $("wifiForm").addEventListener("submit", (e) => e.preventDefault());
+  renderWifi();
+})();
+</script>
+</body>
+</html>
